@@ -28,6 +28,8 @@ import io.netty.handler.codec.CorruptedFrameException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
+
 /**
  *
  * @author andrea
@@ -49,7 +51,24 @@ public class NettyMQTTHandler extends ChannelInboundHandlerAdapter {
         try {
             switch (msg.getMessageType()) {
                 case CONNECT:
-                    m_processor.processConnect(ctx.channel(), (ConnectMessage) msg);
+                    InetSocketAddress insocket = (InetSocketAddress) ctx.channel()
+                            .remoteAddress();
+                    String clientIP = insocket.getAddress().getHostAddress();
+
+                    ConnectMessage cm =     (ConnectMessage) msg;
+                    String userName  = cm.getUsername();
+                    byte[] passwd = cm.getPassword();
+                    if(userName!=null&& passwd!=null)
+                    {
+                        System.out.println("CONNECT ip:"+clientIP+" "+cm.getUsername()+" "+new String(cm.getPassword()));
+                    }else
+                    {
+                        System.out.println("CONNECT ip:"+clientIP+" username or passwd is null");
+                        ctx.close();
+                    }
+
+
+                    m_processor.processConnect(ctx.channel(), cm);
                     break;
                 case SUBSCRIBE:
                     m_processor.processSubscribe(ctx.channel(), (SubscribeMessage) msg);
@@ -58,6 +77,9 @@ public class NettyMQTTHandler extends ChannelInboundHandlerAdapter {
                     m_processor.processUnsubscribe(ctx.channel(), (UnsubscribeMessage) msg);
                     break;
                 case PUBLISH:
+                    PublishMessage pm = (PublishMessage) msg;
+                    System.out.println("publish: Topic"+pm.getTopicName()+" con:"+new String(pm.getPayload().array()));
+
                     m_processor.processPublish(ctx.channel(), (PublishMessage) msg);
                     break;
                 case PUBREC:
@@ -70,6 +92,10 @@ public class NettyMQTTHandler extends ChannelInboundHandlerAdapter {
                     m_processor.processPubRel(ctx.channel(), (PubRelMessage) msg);
                     break;
                 case DISCONNECT:
+                     insocket = (InetSocketAddress) ctx.channel()
+                            .remoteAddress();
+                    clientIP = insocket.getAddress().getHostAddress();
+                    System.out.println("DISCONNECT ip:"+clientIP);
                     m_processor.processDisconnect(ctx.channel());
                     break;
                 case PUBACK:
@@ -96,6 +122,10 @@ public class NettyMQTTHandler extends ChannelInboundHandlerAdapter {
             if (stolenAttr != null && stolenAttr == Boolean.TRUE) {
                 stolen = true;
             }
+            InetSocketAddress insocket = (InetSocketAddress) ctx.channel()
+                    .remoteAddress();
+            String clientIP = insocket.getAddress().getHostAddress();
+            System.out.println(clientID+" lost ip:"+clientIP);
             m_processor.processConnectionLost(clientID, stolen, ctx.channel());
         }
         ctx.close();

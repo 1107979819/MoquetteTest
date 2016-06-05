@@ -246,6 +246,7 @@ public class NettyAcceptor implements ServerAcceptor {
         initFactory(host, sslPort, new PipelineInitializer() {
             @Override
             void init(ChannelPipeline pipeline) throws Exception {
+
                 pipeline.addLast("ssl", createSslHandler(sslContext, needsClientAuth));
                 pipeline.addLast("httpEncoder", new HttpResponseEncoder());
                 pipeline.addLast("httpDecoder", new HttpRequestDecoder());
